@@ -24,6 +24,8 @@ async function renderMailing(data: unknown): Promise<Response> {
     });
 }
 
+
+
 const server = Bun.serve({
     port: PORT,
     async fetch(req) {
