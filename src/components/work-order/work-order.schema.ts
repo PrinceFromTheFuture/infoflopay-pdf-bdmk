@@ -87,6 +87,8 @@ export const workOrderSchema = z.object({
     printing: z.array(printingRowSchema),
     lettershop: z.array(lettershopRowSchema),
     comments: z.string(),
+    /** PHP-style date format string (e.g. "m/d/Y", "d-m-Y", "Y/m/d").  Defaults to "m/d/Y". */
+    date_format: z.string().default('m/d/Y'),
 });
 
 export type WorkOrderData = z.infer<typeof workOrderSchema>;

@@ -12,8 +12,8 @@ import {
 // ─── Single border used everywhere ────────────────────────────
 const B = '0.8 solid #000000';
 
-// Fixed height of a single data row. Used so page capacity is predictable
-// when we paginate, and so the "fill" filler row math stays stable.
+// Fixed height of a single data row. Used so the blank filler rows match the
+// data rows and the ruled grid stays even.
 export const ROW_H = 14;
 
 /**
@@ -32,7 +32,10 @@ export type Column<T> = {
 const styles = {
     title: { paddingVertical: 3, paddingTop: 5 } as Style,
     titleTxt: { fontFamily: 'Helvetica-Bold', fontSize: 12 } as Style,
-    box: { border: B, marginBottom: 3 } as Style,
+    // Bottom border is intentionally omitted: the last table row keeps its own
+    // 1pt divider as the table's bottom edge, so every row (data or blank) has
+    // an identical height instead of the final row being padded by the box border.
+    box: { border: B, borderBottomWidth: 0, marginBottom: 3 } as Style,
     thTxt: { fontFamily: 'Helvetica', fontSize: 6, textAlign: 'center' } as Style,
 };
 
@@ -46,14 +49,6 @@ type SectionTableProps<T> = {
      * instead of collapsing to the height of its data.
      */
     minRows?: number;
-    /**
-     * When true, the table grows to consume all remaining vertical space on the
-     * page. The blank filler rows stretch uniformly (each at least one row tall)
-     * so the ruled grid reaches the bottom of the page instead of leaving a
-     * single oversized empty cell. Requires the parent <Page> to lay children
-     * out in a column, which is the react-pdf default.
-     */
-    fill?: boolean;
 };
 
 /**
@@ -61,43 +56,47 @@ type SectionTableProps<T> = {
  *
  * Renders a section heading followed by a bordered table built from a
  * declarative `columns` config. Data rows are followed by blank filler rows so
- * the table reaches `minRows` (and, when `fill` is set, the bottom of the page),
- * keeping the column rules and row dividers running all the way down.
+ * the table reaches `minRows`, keeping the column rules and row dividers running
+ * down to a consistent minimum height.
+ *
+ * The table flows in normal document order and wraps naturally across pages:
+ * when the rows don't fit on the current page react-pdf continues them on the
+ * next one. Rows never split mid-row (each <TableRow> sets `wrap={false}`), so a
+ * row is always drawn whole on a single page.
  */
-export function SectionTable<T>({ title, columns, rows, minRows = 0, fill = false }: SectionTableProps<T>) {
+export function SectionTable<T>({ title, columns, rows, minRows = 0 }: SectionTableProps<T>) {
     const lastCol = columns.length - 1;
-    const fillStyle: Style | undefined = fill
-        ? { flexGrow: 1, flexDirection: 'column' }
-        : undefined;
 
-    // Blank rows appended after the data. Always keep at least one filler when
-    // filling so the body has something to stretch to the page bottom.
-    const fillerCount = Math.max(minRows - rows.length, fill ? 1 : 0);
-    const totalRows = rows.length + fillerCount;
+    // Blank rows appended after the data so a sparse table still reads as a full
+    // ruled grid up to `minRows`.
+    const fillerCount = Math.max(minRows - rows.length, 0);
 
     const renderCells = (row: T | null) =>
-        columns.map((c, i) => (
-            <TableCell
-                key={c.key}
-                width={c.width}
-                align={row ? c.align ?? 'center' : 'center'}
-                style={i === lastCol ? {} : { borderRight: B }}
-            >
-                {row ? String(c.render(row)) : ' '}
-            </TableCell>
-        ));
+        columns.map((c, i) => {
+            const style = i === lastCol ? {} : { borderRight: B };
+            return (
+                <TableCell
+                    key={c.key}
+                    width={c.width}
+                    align={row ? c.align ?? 'center' : 'center'}
+                    style={{ ...style }}
+                >
+                    {row ? String(c.render(row)) : ' '}
+                </TableCell>
+            );
+        });
 
     return (
         <>
-            <View style={styles.title}>
+            {/* Keep the heading from being orphaned at the very bottom of a page:
+                if there isn't room for the header + a couple of rows below it,
+                react-pdf pushes the whole section to the next page. */}
+            <View style={styles.title} minPresenceAhead={ROW_H * 3}>
                 <Text style={styles.titleTxt}>{title}</Text>
             </View>
 
-            <View style={fill ? [styles.box, fillStyle as Style] : styles.box}>
-                <Table
-                    variant="line"
-                    style={{ marginBottom: 0, borderBottomWidth: 0, ...(fill ? fillStyle : {}) }}
-                >
+            <View style={styles.box}>
+                <Table variant="line" style={{ marginBottom: 0, borderBottomWidth: 0 }}>
                     <TableHeader>
                         <TableRow header style={{ borderBottom: B }}>
                             {columns.map((c, i) => (
@@ -113,34 +112,18 @@ export function SectionTable<T>({ title, columns, rows, minRows = 0, fill = fals
                         </TableRow>
                     </TableHeader>
 
-                    <TableBody style={fillStyle}>
+                    <TableBody>
                         {rows.map((row, r) => (
-                            <TableRow
-                                key={`d${r}`}
-                                style={{
-                                    height: ROW_H,
-                                    ...(r === totalRows - 1 ? { borderBottomWidth: 0 } : {}),
-                                }}
-                            >
+                            <TableRow key={`d${r}`} style={{ height: ROW_H }}>
                                 {renderCells(row)}
                             </TableRow>
                         ))}
 
-                        {Array.from({ length: fillerCount }).map((_, f) => {
-                            const r = rows.length + f;
-                            const isLast = r === totalRows - 1;
-                            return (
-                                <TableRow
-                                    key={`f${f}`}
-                                    style={{
-                                        ...(fill ? { flexGrow: 1, minHeight: ROW_H } : { height: ROW_H }),
-                                        ...(isLast ? { borderBottomWidth: 0 } : {}),
-                                    }}
-                                >
-                                    {renderCells(null)}
-                                </TableRow>
-                            );
-                        })}
+                        {Array.from({ length: fillerCount }).map((_, f) => (
+                            <TableRow key={`f${f}`} style={{ height: ROW_H }}>
+                                {renderCells(null)}
+                            </TableRow>
+                        ))}
                     </TableBody>
                 </Table>
             </View>

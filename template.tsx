@@ -2,8 +2,9 @@ import React from 'react';
 import dayjs from 'dayjs';
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
 import { SectionTable, type Column } from './src/components/work-order/section-table';
-import { paginateRows } from './src/components/work-order/paginate';
+import { paginateWorkOrder } from './src/components/work-order/paginate';
 import type { WorkOrderData, PrintingRow, LettershopRow } from './src/components/work-order/work-order.schema';
+import { phpToDayjs } from './src/utils/date-format';
 
 // ─── Single border used everywhere ────────────────────────────
 const B = '0.8 solid #000000';
@@ -28,26 +29,33 @@ const GRID_GAP = 3; // vertical gap between the top and bottom row only
 const CELL_W = (612 - 40) / 2; // 286
 const CELL_H = CELL_W / 2.8; // height aspect 1/2 of width
 
-// ─── Default (minimum) table sizes ────────────────────────────
-// Even with little or no data, each table is padded with blank ruled rows so it
-// reads as a full grid. PRINTING is a fixed block on page 1; LETTERSHOP also
-// stretches to fill whatever vertical space is left on its page.
-const PRINTING_MIN_ROWS = 14;
+// ─── Page geometry & per-page table capacities ────────────────
+// Every page is laid out identically: order summary (~245pt) on top, the two
+// tables in the middle, comments box (~49pt) pinned to the bottom. The numbers
+// below are derived from those measured heights on a LETTER page (792pt tall)
+// with a 14pt row height and a 34pt per-table overhead (title + header row):
+//
+//   usable height           = 792 − 20 (top) − 20 (bottom) − 49 (comments) ≈ 703
+//   space for tables         = 703 − 245 (summary)                         ≈ 458
+//   BOTH tables (2× 34 ovh)  → (458 − 68) / 14 ≈ 27 rows total  → 13 each
+//   ONE table  (1× 34 ovh)   → (458 − 34) / 14 ≈ 30 rows        → 29 (margin)
+const PAGE_MARGIN = 20;
+const FOOTER_HEIGHT = 49; // measured CommentsBox height
 
-// ─── Pagination capacity ──────────────────────────────────────
-// How many LETTERSHOP rows fit (and how many blank rows we pad to) per page.
-// Page 1 shares space with the full PRINTING table + comments, so it holds
-// fewer rows; continuation pages carry only the LETTERSHOP table and fit more.
-// These double as the per-page fill targets so the LETTERSHOP grid is always
-// drawn all the way to the bottom of the page.
-const ROWS_PAGE_1 = 12;
-const ROWS_PAGE_CONT = 28;
+// Rows per table when both share a page, and for a lone table that fills the
+// page once the other has run out of data.
+const ROWS_BOTH = 13;
+const ROWS_FULL = 29;
 
 const styles = StyleSheet.create({
     page: {
         fontFamily: 'Helvetica',
         fontSize: FS.normal,
-        padding: 20,
+        paddingTop: PAGE_MARGIN,
+        paddingHorizontal: PAGE_MARGIN,
+        // Reserve space for the absolutely-positioned comments footer so the
+        // flowing tables can never run underneath it.
+        paddingBottom: PAGE_MARGIN + FOOTER_HEIGHT,
         backgroundColor: '#ffffff',
         flexDirection: 'column',
     },
@@ -75,7 +83,7 @@ const styles = StyleSheet.create({
         width: CELL_W,
         height: CELL_H,
         border: B,
-        padding: 8,
+        padding: 3,
         overflow: 'hidden',
     },
 
@@ -126,20 +134,25 @@ const KV = ({
 const fmtNum = (n: number) => n.toLocaleString('en-US');
 
 // ─── Table column definitions ─────────────────────────────────
+const fmtAuto = (v: unknown): string => {
+    const n = Number(v);
+    return isNaN(n) ? String(v ?? '') : fmtNum(n);
+};
+
 const printingColumns: Column<PrintingRow>[] = [
-    { key: 'qty', header: 'QTY', width: 30, render: (r) => fmtNum(r.qty) },
+    { key: 'qty', header: 'QTY', width: 34, render: (r) => fmtAuto(r.qty) },
     { key: 'desc', header: 'SIZE - TYPE - MATERIAL', align: 'left', render: (r) => `${r.size} ${r.type} ${r.material}` },
-    { key: 'via', header: 'VIA', width: 32, render: (r) => r.via },
-    { key: 'psiz', header: 'PSIZ', width: 36, render: (r) => r.psiz },
-    { key: 'sht', header: 'SHT', width: 24, render: (r) => fmtNum(r.sht) },
-    { key: 'up', header: '#UP', width: 26, render: (r) => fmtNum(r.up) },
-    { key: 'crn', header: 'CRN', width: 32, render: (r) => r.crn },
-    { key: 'bth', header: 'BTH', width: 24, render: (r) => fmtNum(r.bth) },
-    { key: 'bld', header: 'BLD', width: 24, render: (r) => r.bld },
-    { key: 'sd', header: 'S/D', width: 42, render: (r) => r.sd },
-    { key: 'cb', header: 'C/B', width: 32, render: (r) => r.cb },
-    { key: 'uv', header: 'UV', width: 52, render: (r) => r.uv },
-    { key: 'vdp', header: 'VDP', width: 24, render: (r) => r.vdp },
+    { key: 'via', header: 'VIA', width: 32, render: (r) => fmtAuto(r.via) },
+    { key: 'psiz', header: 'PSIZ', width: 38, render: (r) => fmtAuto(r.psiz) },
+    { key: 'sht', header: 'SHT', width: 32, render: (r) => fmtAuto(r.sht) },
+    { key: 'up', header: '#UP', width: 32, render: (r) => fmtAuto(r.up) },
+    { key: 'crn', header: 'CRN', width: 32, render: (r) => fmtAuto(r.crn) },
+    { key: 'bth', header: 'BTH', width: 32, render: (r) => fmtAuto(r.bth) },
+    { key: 'bld', header: 'BLD', width: 32, render: (r) => fmtAuto(r.bld) },
+    { key: 'sd', header: 'S/D', width: 32, render: (r) => fmtAuto(r.sd) },
+    { key: 'cb', header: 'C/B', width: 32, render: (r) => fmtAuto(r.cb) },
+    { key: 'uv', header: 'UV', width: 32, render: (r) => fmtAuto(r.uv) },
+    { key: 'vdp', header: 'VDP', width: 24, render: (r) => fmtAuto(r.vdp) },
 ];
 
 const lettershopColumns: Column<LettershopRow>[] = [
@@ -149,7 +162,14 @@ const lettershopColumns: Column<LettershopRow>[] = [
 ];
 
 // ─── Repeated page top: work-order header + 2x2 order grid ─────
-const OrderSummary = ({ data }: { data: WorkOrderData }) => (
+const OrderSummary = ({ data }: { data: WorkOrderData }) => {
+    const dayjsFmt = phpToDayjs(data.date_format);
+    const fmtDate = (dateStr: string) => {
+        const d = dayjs(dateStr);
+        return d.isValid() ? d.format(dayjsFmt) : dateStr;
+    };
+
+    return (
     <>
         {/* ════ WORK ORDER HEADER (no border) ═══════════════════ */}
         <View style={styles.header}>
@@ -163,7 +183,7 @@ const OrderSummary = ({ data }: { data: WorkOrderData }) => (
             </View>
             <View style={styles.headerCol}>
                 <Text style={{ height: "8px" }}></Text>
-                <Text style={styles.headerVal}>{dayjs(data.header.dueDate).format('MM/DD/YYYY')}</Text>
+                <Text style={styles.headerVal}>{fmtDate(data.header.dueDate)}</Text>
             </View>
             <View style={styles.headerCol}>
                 <Text style={styles.headerLbl}>Priority:</Text>
@@ -182,7 +202,7 @@ const OrderSummary = ({ data }: { data: WorkOrderData }) => (
                     <KV keyWidth={52} label="Job Name:" value={data.order.jobName} valSize={FS.xl} valBold />
                 </View>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingRight: 20, marginTop: PAIR_GAP }}>
-                    <KV keyWidth={52} label="Quantity:" value={data.order.quantity} valSize={FS.xl} valBold />
+                    <KV keyWidth={52} label="Quantity:" value={fmtNum(Number(data.order.quantity))} valSize={FS.xl} valBold />
                     <KV label="PO:" value={data.order.po} keySize={FS.xl4} valSize={FS.xl4} valBold />
                 </View>
             </View>
@@ -191,10 +211,10 @@ const OrderSummary = ({ data }: { data: WorkOrderData }) => (
             <View style={styles.cell}>
                 <View style={{ flexDirection: 'row', height: '100%' }}>
                     <View style={{ flex: 1, gap: PAIR_GAP, paddingRight: 6, justifyContent: 'center' }}>
-                        <KV gap={ROW_GAP} label="Order Date:" value={data.order.orderDate} keySize={FS.xl} valSize={FS.xl} />
-                        <KV gap={ROW_GAP} label="Data In:" value={data.order.dataIn} keySize={FS.xl} valSize={FS.xl} />
-                        <KV gap={ROW_GAP} label="Material In:" value={data.order.materialIn} keySize={FS.xl} valSize={FS.xl} />
-                        <KV gap={ROW_GAP} label="Due Date:" value={data.order.dueDate} keySize={FS.xl} valSize={FS.xl} />
+                        <KV gap={ROW_GAP} label="Order Date:" value={fmtDate(data.order.orderDate)} keySize={FS.xl} valSize={FS.xl} />
+                        <KV gap={ROW_GAP} label="Data In:" value={fmtDate(data.order.dataIn)} keySize={FS.xl} valSize={FS.xl} />
+                        <KV gap={ROW_GAP} label="Material In:" value={fmtDate(data.order.materialIn)} keySize={FS.xl} valSize={FS.xl} />
+                        <KV gap={ROW_GAP} label="Due Date:" value={fmtDate(data.order.dueDate)} keySize={FS.xl} valSize={FS.xl} />
                     </View>
                     <View style={{ width: 64, gap: PAIR_GAP, justifyContent: 'center' }}>
                         <KV gap={ROW_GAP} label="DP:" value={data.design.dp} keySize={FS.xl} valSize={FS.xl} />
@@ -236,57 +256,70 @@ const OrderSummary = ({ data }: { data: WorkOrderData }) => (
 
         </View>
     </>
-);
+    );
+};
 
 // ─── Comments footer block (pinned to bottom of every page) ────
+// Absolutely positioned at the bottom margin so it sits flush at the foot of
+// every page regardless of how full the tables are. The page reserves
+// FOOTER_HEIGHT of bottom padding so the tables never run underneath it.
 const CommentsBox = ({ comments }: { comments: string }) => (
-    <View style={[styles.box, { marginBottom: 0 }]}>
+    <View
+        fixed
+        style={[
+            styles.box,
+            {
+                marginBottom: 0,
+                position: 'absolute',
+                left: PAGE_MARGIN,
+                right: PAGE_MARGIN,
+                bottom: PAGE_MARGIN,
+            },
+        ]}
+    >
         <Text style={{ fontFamily: 'Helvetica', fontSize: 7, padding: 3 }}>COMMENTS:</Text>
         <View style={{ flexDirection: 'row' }}>
-            <View style={{ flex: 1, paddingBottom: 4, paddingHorizontal: 5, minHeight: 32 }}>
+            <View style={{ flex: 1, paddingBottom: 4, paddingHorizontal: 5, minHeight: 38 }}>
                 <Text style={{ fontFamily: 'Helvetica', fontSize: 6 }}>{comments}</Text>
             </View>
         </View>
     </View>
 );
 
-// Split the lettershop rows across as many pages as needed. Each page repeats
-// the same header/grid; only the lettershop table changes (and PRINTING is
-// shown on the first page only).
-const __OVERFLOW_TEST = process.env.OVERFLOW_TEST === '1';
-
+// Each page is identical in structure — order summary, PRINTING table,
+// LETTERSHOP table, comments — and the two tables are paginated together. While
+// both tables still have data they share the page (ROWS_BOTH rows each, padded
+// with blank rows to a full grid). Once one table runs out, the other expands
+// to ROWS_FULL and fills every following page on its own.
 const MyDocument = ({ data }: { data: WorkOrderData }) => {
-    const lettershopRows = __OVERFLOW_TEST
-        ? Array.from({ length: 70 }, (_, i) => ({
-            qty: 1000 + i,
-            description: `Inkjet Addressing line ${i + 1}`,
-            comment: String(i + 1),
-        }))
-        : data.lettershop;
-    const lettershopPages = paginateRows(lettershopRows, ROWS_PAGE_1, ROWS_PAGE_CONT);
+    const pages = paginateWorkOrder(data.printing, data.lettershop, {
+        both: ROWS_BOTH,
+        full: ROWS_FULL,
+    });
 
     return (
         <Document>
-            {lettershopPages.map((rows, pageIndex) => (
-                <Page key={pageIndex} size="LETTER" style={styles.page}>
+            {pages.map((page, i) => (
+                <Page key={i} size="LETTER" style={styles.page}>
                     <OrderSummary data={data} />
 
-                    {pageIndex === 0 && (
+                    {page.printing && (
                         <SectionTable
                             title="PRINTING"
                             columns={printingColumns}
-                            rows={data.printing}
-                            minRows={PRINTING_MIN_ROWS}
+                            rows={page.printing.rows}
+                            minRows={page.printing.padTo}
                         />
                     )}
 
-                    <SectionTable
-                        title="LETTERSHOP"
-                        columns={lettershopColumns}
-                        rows={rows as LettershopRow[]}
-                        minRows={pageIndex === 0 ? ROWS_PAGE_1 : ROWS_PAGE_CONT}
-                        fill
-                    />
+                    {page.lettershop && (
+                        <SectionTable
+                            title="LETTERSHOP"
+                            columns={lettershopColumns}
+                            rows={page.lettershop.rows}
+                            minRows={page.lettershop.padTo}
+                        />
+                    )}
 
                     <CommentsBox comments={data.comments} />
                 </Page>

@@ -231,5 +231,5 @@ export function TableCell({
       children
     );
 
-  return <View style={styleArray}>{content}</View>;
+  return <View style={[...styleArray, { paddingHorizontal: 2 }]}>{content}</View>;
 }
