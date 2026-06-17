@@ -122,16 +122,19 @@ const KV = ({
     </View>
 );
 
+// ─── Number formatter ──────────────────────────────────────────
+const fmtNum = (n: number) => n.toLocaleString('en-US');
+
 // ─── Table column definitions ─────────────────────────────────
 const printingColumns: Column<PrintingRow>[] = [
-    { key: 'qty', header: 'QTY', width: 30, render: (r) => r.qty },
+    { key: 'qty', header: 'QTY', width: 30, render: (r) => fmtNum(r.qty) },
     { key: 'desc', header: 'SIZE - TYPE - MATERIAL', align: 'left', render: (r) => `${r.size} ${r.type} ${r.material}` },
-    { key: 'via', header: 'VIA', width: 26, render: (r) => r.via },
+    { key: 'via', header: 'VIA', width: 32, render: (r) => r.via },
     { key: 'psiz', header: 'PSIZ', width: 36, render: (r) => r.psiz },
-    { key: 'sht', header: 'SHT', width: 24, render: (r) => r.sht },
-    { key: 'up', header: '#UP', width: 26, render: (r) => r.up },
+    { key: 'sht', header: 'SHT', width: 24, render: (r) => fmtNum(r.sht) },
+    { key: 'up', header: '#UP', width: 26, render: (r) => fmtNum(r.up) },
     { key: 'crn', header: 'CRN', width: 32, render: (r) => r.crn },
-    { key: 'bth', header: 'BTH', width: 24, render: (r) => r.bth },
+    { key: 'bth', header: 'BTH', width: 24, render: (r) => fmtNum(r.bth) },
     { key: 'bld', header: 'BLD', width: 24, render: (r) => r.bld },
     { key: 'sd', header: 'S/D', width: 42, render: (r) => r.sd },
     { key: 'cb', header: 'C/B', width: 32, render: (r) => r.cb },
@@ -140,7 +143,7 @@ const printingColumns: Column<PrintingRow>[] = [
 ];
 
 const lettershopColumns: Column<LettershopRow>[] = [
-    { key: 'qty', header: 'QTY', width: 55, render: (r) => r.qty },
+    { key: 'qty', header: 'QTY', width: 55, render: (r) => fmtNum(r.qty) },
     { key: 'description', header: 'DESCRIPTION', align: 'left', render: (r) => r.description },
     { key: 'comment', header: 'COMMENT', align: 'left', render: (r) => r.comment },
 ];
@@ -160,7 +163,7 @@ const OrderSummary = ({ data }: { data: WorkOrderData }) => (
             </View>
             <View style={styles.headerCol}>
                 <Text style={{ height: "8px" }}></Text>
-                <Text style={styles.headerVal}>{dayjs(data.header.dueDate).format('DD/MM/YYYY')}</Text>
+                <Text style={styles.headerVal}>{dayjs(data.header.dueDate).format('MM/DD/YYYY')}</Text>
             </View>
             <View style={styles.headerCol}>
                 <Text style={styles.headerLbl}>Priority:</Text>
