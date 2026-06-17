@@ -5,72 +5,77 @@ import { z } from 'zod';
 // Use `workOrderSchema.parse(data)` to fail fast on malformed input, and the
 // inferred `WorkOrderData` type to keep the template and its callers in sync.
 
+// Accepts strings, numbers, null, or undefined — always coerces to string.
+const s = z.coerce.string();
+// Accepts strings, numbers, null, or undefined — always coerces to number.
+const n = z.coerce.number();
+
 const headerSchema = z.object({
-    workOrder: z.string(),
-    dueDate: z.string(),
-    priority: z.string(),
+    workOrder: s,
+    dueDate: s,
+    priority: s,
 });
 
 const orderSchema = z.object({
-    customer: z.string(),
-    notes: z.string(),
-    jobName: z.string(),
-    quantity: z.string(),
-    po: z.string(),
-    orderDate: z.string(),
-    dataIn: z.string(),
-    materialIn: z.string(),
-    dueDate: z.string(),
+    customer: s,
+    notes: s,
+    jobName: s,
+    quantity: s,
+    po: s,
+    orderDate: s,
+    dataIn: s,
+    materialIn: s,
+    dueDate: s,
 });
 
 const designSchema = z.object({
-    dp: z.string(),
-    hp: z.string(),
-    vp: z.string(),
-    pp: z.string(),
+    dp: s,
+    hp: s,
+    vp: s,
+    pp: s,
 });
 
 const sortPostageSchema = z.object({
-    catSize: z.string(),
-    classOfMail: z.string(),
-    postageAffix: z.string(),
-    data: z.string(),
-    postageStatus: z.string(),
-    piNumber: z.string(),
-    destitrack: z.string(),
-    itSpecial: z.string(),
-    mailingList: z.string(),
+    catSize: s,
+    classOfMail: s,
+    postageAffix: s,
+    data: s,
+    postageStatus: s,
+    piNumber: s,
+    destitrack: s,
+    itSpecial: s,
+    mailingList: s,
 });
 
 const deliverySchema = z.object({
-    deliverToPo: z.string(),
-    deliverToClient: z.string(),
-    clientPuOrShip: z.string(),
-    leftovers: z.string(),
+    deliverToPo: s,
+    deliverToClient: s,
+    clientPuOrShip: s,
+    leftovers: s,
 });
 
 const printingRowSchema = z.object({
-    qty: z.number(),
-    size: z.string(),
-    type: z.string(),
-    material: z.string(),
-    via: z.string(),
-    psiz: z.string(),
-    sht: z.number(),
-    up: z.number(),
-    crn: z.string(),
-    bth: z.number(),
-    bld: z.string(),
-    sd: z.string(),
-    cb: z.string(),
-    uv: z.string(),
-    vdp: z.string(),
+    qty: n,
+    size: s,
+    type: s,
+    material: s,
+    via: s,
+    psiz: s,
+    sht: n,
+    up: n,
+    crn: s,
+    bth: n,
+    bld: s,
+    sd: s,
+    cb: s,
+    uv: s,
+    vdp: s,
 });
 
 const lettershopRowSchema = z.object({
-    qty: z.number(),
-    description: z.string(),
-    comment: z.string(),
+    qty: n,
+    description: s,
+    comment: s,
 });
 
 export const workOrderSchema = z.object({
