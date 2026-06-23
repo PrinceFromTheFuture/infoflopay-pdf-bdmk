@@ -143,15 +143,8 @@ const printingColumns: Column<PrintingRow>[] = [
     { key: 'qty', header: 'QTY', width: 34, render: (r) => fmtAuto(r.qty) },
     { key: 'desc', header: 'SIZE - TYPE - MATERIAL', align: 'left', render: (r) => `${r.size} ${r.type} ${r.material}` },
     { key: 'via', header: 'VIA', width: 32, render: (r) => fmtAuto(r.via) },
-    { key: 'psiz', header: 'PSIZ', width: 38, render: (r) => fmtAuto(r.psiz) },
-    { key: 'sht', header: 'SHT', width: 32, render: (r) => fmtAuto(r.sht) },
-    { key: 'up', header: '#UP', width: 32, render: (r) => fmtAuto(r.up) },
-    { key: 'crn', header: 'CRN', width: 32, render: (r) => fmtAuto(r.crn) },
-    { key: 'bth', header: 'BTH', width: 32, render: (r) => fmtAuto(r.bth) },
-    { key: 'bld', header: 'BLD', width: 32, render: (r) => fmtAuto(r.bld) },
     { key: 'sd', header: 'S/D', width: 32, render: (r) => fmtAuto(r.sd) },
     { key: 'cb', header: 'C/B', width: 32, render: (r) => fmtAuto(r.cb) },
-    { key: 'uv', header: 'UV', width: 32, render: (r) => fmtAuto(r.uv) },
     { key: 'vdp', header: 'VDP', width: 24, render: (r) => fmtAuto(r.vdp) },
 ];
 

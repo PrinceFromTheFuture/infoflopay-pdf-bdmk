@@ -1,4 +1,4 @@
-import MyDocument from './template.tsx';
+import MailingTemplate from './template.tsx';
 import { pdf } from '@react-pdf/renderer';
 import { workOrderSchema } from './src/components/work-order/work-order.schema';
 
@@ -15,7 +15,7 @@ async function renderMailing(data: unknown): Promise<Response> {
         );
     }
 
-    const blob = await pdf(<MyDocument data={parsed.data} />).toBlob();
+    const blob = await pdf(<MailingTemplate data={parsed.data} />).toBlob();
     return new Response(blob, {
         headers: {
             'Content-Type': 'application/pdf',

@@ -9,6 +9,10 @@
     "@types/react-pdf": "^6.2.0",
     "pdf-to-img": "^6.2.0"
   },
+  "scripts": {
+    "dev": "bun --watch index.tsx",
+    "start": "bun run index.tsx"
+  },
   "peerDependencies": {
     "typescript": "^5"
   },

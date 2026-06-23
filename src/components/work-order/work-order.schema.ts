@@ -60,15 +60,9 @@ const printingRowSchema = z.object({
     type: s,
     material: s,
     via: s,
-    psiz: s,
-    sht: n,
-    up: n,
-    crn: s,
-    bth: n,
-    bld: s,
+    rc: s,
     sd: s,
     cb: s,
-    uv: s,
     vdp: s,
 });
 
