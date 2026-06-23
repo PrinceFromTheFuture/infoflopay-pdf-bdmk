@@ -125,13 +125,14 @@ const KV = ({
             {label}
         </Text>
         <Text style={{ fontFamily: valBold ? 'Helvetica-Bold' : 'Helvetica', fontSize: valSize }}>
-            {value === '' || value === undefined || value === null ? '—' : value}
+            {value === '' || value === undefined || value === null ? '' : value}
         </Text>
     </View>
 );
 
 // ─── Number formatter ──────────────────────────────────────────
-const fmtNum = (n: number) => n.toLocaleString('en-US');
+// Render an empty string for zero / NaN instead of "0".
+const fmtNum = (n: number) => (!n || isNaN(n) ? '' : n.toLocaleString('en-US'));
 
 // ─── Table column definitions ─────────────────────────────────
 const fmtAuto = (v: unknown): string => {
@@ -143,6 +144,7 @@ const printingColumns: Column<PrintingRow>[] = [
     { key: 'qty', header: 'QTY', width: 34, render: (r) => fmtAuto(r.qty) },
     { key: 'desc', header: 'SIZE - TYPE - MATERIAL', align: 'left', render: (r) => `${r.size} ${r.type} ${r.material}` },
     { key: 'via', header: 'VIA', width: 32, render: (r) => fmtAuto(r.via) },
+    { key: 'rc', header: 'RC', width: 32, render: (r) => fmtAuto(r.rc) },
     { key: 'sd', header: 'S/D', width: 32, render: (r) => fmtAuto(r.sd) },
     { key: 'cb', header: 'C/B', width: 32, render: (r) => fmtAuto(r.cb) },
     { key: 'vdp', header: 'VDP', width: 24, render: (r) => fmtAuto(r.vdp) },
@@ -162,93 +164,94 @@ const OrderSummary = ({ data }: { data: WorkOrderData }) => {
         return d.isValid() ? d.format(dayjsFmt) : dateStr;
     };
 
+
     return (
-    <>
-        {/* ════ WORK ORDER HEADER (no border) ═══════════════════ */}
-        <View style={styles.header}>
-            <View style={styles.headerCol}>
-                <Text style={styles.headerLbl}>Work Order:</Text>
-                <Text style={styles.headerVal}>{data.header.workOrder}</Text>
-            </View>
-            <View style={styles.headerCol}>
-                <Text style={styles.headerLbl}>Due Date:</Text>
-                <Text style={styles.headerVal}>{dayjs(data.header.dueDate).format('ddd')}</Text>
-            </View>
-            <View style={styles.headerCol}>
-                <Text style={{ height: "8px" }}></Text>
-                <Text style={styles.headerVal}>{fmtDate(data.header.dueDate)}</Text>
-            </View>
-            <View style={styles.headerCol}>
-                <Text style={styles.headerLbl}>Priority:</Text>
-                <Text style={styles.headerVal}>{data.header.priority}</Text>
-            </View>
-        </View>
-
-        {/* ════ ORDER BOXES — 2x2 grid ══════════════════════════ */}
-        <View style={styles.grid}>
-
-            {/* ── Cell 1: Customer ── */}
-            <View style={{ ...styles.cell, borderRight: '0 solid #000000', justifyContent: 'center' }}>
-                <View style={{ gap: PAIR_GAP }}>
-                    <KV keyWidth={52} label="Customer:" value={data.order.customer} valSize={FS.xl} valBold />
-                    <KV keyWidth={52} label="Notes:" value={data.order.notes} valSize={FS.normal} valBold />
-                    <KV keyWidth={52} label="Job Name:" value={data.order.jobName} valSize={FS.xl} valBold />
+        <>
+            {/* ════ WORK ORDER HEADER (no border) ═══════════════════ */}
+            <View style={styles.header}>
+                <View style={styles.headerCol}>
+                    <Text style={styles.headerLbl}>Work Order:</Text>
+                    <Text style={styles.headerVal}>{data.header.workOrder}</Text>
                 </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingRight: 20, marginTop: PAIR_GAP }}>
-                    <KV keyWidth={52} label="Quantity:" value={fmtNum(Number(data.order.quantity))} valSize={FS.xl} valBold />
-                    <KV label="PO:" value={data.order.po} keySize={FS.xl4} valSize={FS.xl4} valBold />
+                <View style={styles.headerCol}>
+                    <Text style={styles.headerLbl}>Due Date:</Text>
+                    <Text style={styles.headerVal}>{dayjs(data.header.dueDate).format('ddd')}</Text>
+                </View>
+                <View style={styles.headerCol}>
+                    <Text style={{ height: "8px" }}></Text>
+                    <Text style={styles.headerVal}>{fmtDate(data.header.dueDate)}</Text>
+                </View>
+                <View style={styles.headerCol}>
+                    <Text style={styles.headerLbl}>Priority:</Text>
+                    <Text style={styles.headerVal}>{data.header.priority}</Text>
                 </View>
             </View>
 
-            {/* ── Cell 2: Order information ── */}
-            <View style={styles.cell}>
-                <View style={{ flexDirection: 'row', height: '100%' }}>
-                    <View style={{ flex: 1, gap: PAIR_GAP, paddingRight: 6, justifyContent: 'center' }}>
-                        <KV gap={ROW_GAP} label="Order Date:" value={fmtDate(data.order.orderDate)} keySize={FS.xl} valSize={FS.xl} />
-                        <KV gap={ROW_GAP} label="Data In:" value={fmtDate(data.order.dataIn)} keySize={FS.xl} valSize={FS.xl} />
-                        <KV gap={ROW_GAP} label="Material In:" value={fmtDate(data.order.materialIn)} keySize={FS.xl} valSize={FS.xl} />
-                        <KV gap={ROW_GAP} label="Due Date:" value={fmtDate(data.order.dueDate)} keySize={FS.xl} valSize={FS.xl} />
+            {/* ════ ORDER BOXES — 2x2 grid ══════════════════════════ */}
+            <View style={styles.grid}>
+
+                {/* ── Cell 1: Customer ── */}
+                <View style={{ ...styles.cell, borderRight: '0 solid #000000', justifyContent: 'center' }}>
+                    <View style={{ gap: PAIR_GAP }}>
+                        <KV keyWidth={52} label="Customer:" value={data.order.customer} valSize={FS.xl} valBold />
+                        <KV keyWidth={52} label="Notes:" value={data.order.notes} valSize={FS.normal} valBold />
+                        <KV keyWidth={52} label="Job Name:" value={data.order.jobName} valSize={FS.xl} valBold />
                     </View>
-                    <View style={{ width: 64, gap: PAIR_GAP, justifyContent: 'center' }}>
-                        <KV gap={ROW_GAP} label="DP:" value={data.design.dp} keySize={FS.xl} valSize={FS.xl} />
-                        <KV gap={ROW_GAP} label="HP:" value={data.design.hp} keySize={FS.xl} valSize={FS.xl} />
-                        <KV gap={ROW_GAP} label="VP:" value={data.design.vp} keySize={FS.xl} valSize={FS.xl} />
-                        <KV gap={ROW_GAP} label="PP:" value={data.design.pp} keySize={FS.xl} valSize={FS.xl} />
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingRight: 20, marginTop: PAIR_GAP }}>
+                        <KV keyWidth={52} label="Quantity:" value={fmtNum(Number(data.order.quantity))} valSize={FS.xl} valBold />
+                        <KV label="PO:" value={data.order.po} keySize={FS.xl4} valSize={FS.xl4} valBold />
                     </View>
                 </View>
-            </View>
 
-            {/* ── Cell 4: Sort / Postage ── */}
-            <View style={{ ...styles.cell, borderRight: '0 solid #000000' }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', height: '100%' }}>
-                    <View style={{ flex: 1, gap: PAIR_GAP, paddingRight: 6 }}>
-                        <KV label="Cat / Size:" value={data.sortPostage.catSize} />
-                        <KV label="Class of mail:" value={data.sortPostage.classOfMail} />
-                        <KV label="Postage affix:" value={data.sortPostage.postageAffix} />
-                        <KV label="Data:" value={data.sortPostage.data} />
-                        <KV label="Postage Status:" value={data.sortPostage.postageStatus} />
-                    </View>
-                    <View style={{ flex: 1, gap: PAIR_GAP }}>
-                        <KV label="PI number:" value={data.sortPostage.piNumber} />
-                        <KV label="Destitrack:" value={data.sortPostage.destitrack} />
-                        <KV label="IT Special:" value={data.sortPostage.itSpecial} />
-                        <KV label="Mailing List:" value={data.sortPostage.mailingList} />
+                {/* ── Cell 2: Order information ── */}
+                <View style={styles.cell}>
+                    <View style={{ flexDirection: 'row', height: '100%' }}>
+                        <View style={{ flex: 1, gap: PAIR_GAP, paddingRight: 6, justifyContent: 'center' }}>
+                            <KV gap={ROW_GAP} label="Order Date:" value={fmtDate(data.order.orderDate)} keySize={FS.xl} valSize={FS.xl} />
+                            <KV gap={ROW_GAP} label="Data In:" value={fmtDate(data.order.dataIn)} keySize={FS.xl} valSize={FS.xl} />
+                            <KV gap={ROW_GAP} label="Material In:" value={fmtDate(data.order.materialIn)} keySize={FS.xl} valSize={FS.xl} />
+                            <KV gap={ROW_GAP} label="Due Date:" value={fmtDate(data.order.dueDate)} keySize={FS.xl} valSize={FS.xl} />
+                        </View>
+                        <View style={{ width: 64, gap: PAIR_GAP, justifyContent: 'center' }}>
+                            <KV gap={ROW_GAP} label="DP:" value={data.design.dp} keySize={FS.xl} valSize={FS.xl} />
+                            <KV gap={ROW_GAP} label="HP:" value={data.design.hp} keySize={FS.xl} valSize={FS.xl} />
+                            <KV gap={ROW_GAP} label="VP:" value={data.design.vp} keySize={FS.xl} valSize={FS.xl} />
+                            <KV gap={ROW_GAP} label="PP:" value={data.design.pp} keySize={FS.xl} valSize={FS.xl} />
+                        </View>
                     </View>
                 </View>
-            </View>
 
-            {/* ── Cell 3: Delivery ── */}
-            <View style={styles.cell}>
-                <View style={{ gap: PAIR_GAP }}>
-                    <KV gap={ROW_GAP} label="Deliver to PO:" value={data.delivery.deliverToPo} />
-                    <KV gap={ROW_GAP} label="Deliver to client:" value={data.delivery.deliverToClient} />
-                    <KV gap={ROW_GAP} label="Client p/u or ship:" value={data.delivery.clientPuOrShip} />
-                    <KV gap={ROW_GAP} label="Leftovers:" value={data.delivery.leftovers} />
+                {/* ── Cell 4: Sort / Postage ── */}
+                <View style={{ ...styles.cell, borderRight: '0 solid #000000' }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', height: '100%' }}>
+                        <View style={{ flex: 1, gap: PAIR_GAP, paddingRight: 6 }}>
+                            <KV label="Cat / Size:" value={data.sortPostage.catSize} />
+                            <KV label="Class of mail:" value={data.sortPostage.classOfMail} />
+                            <KV label="Postage affix:" value={data.sortPostage.postageAffix} />
+                            <KV label="Data:" value={data.sortPostage.data} />
+                            <KV label="Postage Status:" value={data.sortPostage.postageStatus} />
+                        </View>
+                        <View style={{ flex: 1, gap: PAIR_GAP }}>
+                            <KV label="PI number:" value={data.sortPostage.piNumber} />
+                            <KV label="Destitrack:" value={data.sortPostage.destitrack} />
+                            <KV label="IT Special:" value={data.sortPostage.itSpecial} />
+                            <KV label="Mailing List:" value={data.sortPostage.mailingList} />
+                        </View>
+                    </View>
                 </View>
-            </View>
 
-        </View>
-    </>
+                {/* ── Cell 3: Delivery ── */}
+                <View style={styles.cell}>
+                    <View style={{ gap: PAIR_GAP }}>
+                        <KV gap={ROW_GAP} label="Deliver to PO:" value={data.delivery.deliverToPo} />
+                        <KV gap={ROW_GAP} label="Deliver to client:" value={data.delivery.deliverToClient} />
+                        <KV gap={ROW_GAP} label="Client p/u or ship:" value={data.delivery.clientPuOrShip} />
+                        <KV gap={ROW_GAP} label="Leftovers:" value={data.delivery.leftovers} />
+                    </View>
+                </View>
+
+            </View>
+        </>
     );
 };
 
@@ -284,7 +287,7 @@ const CommentsBox = ({ comments }: { comments: string }) => (
 // both tables still have data they share the page (ROWS_BOTH rows each, padded
 // with blank rows to a full grid). Once one table runs out, the other expands
 // to ROWS_FULL and fills every following page on its own.
-const MyDocument = ({ data }: { data: WorkOrderData }) => {
+const mailingTemplate = ({ data }: { data: WorkOrderData }) => {
     const pages = paginateWorkOrder(data.printing, data.lettershop, {
         both: ROWS_BOTH,
         full: ROWS_FULL,
@@ -321,4 +324,4 @@ const MyDocument = ({ data }: { data: WorkOrderData }) => {
     );
 };
 
-export default MyDocument;
+export default mailingTemplate;
