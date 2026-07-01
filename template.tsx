@@ -143,10 +143,10 @@ const fmtAuto = (v: unknown): string => {
 const printingColumns: Column<PrintingRow>[] = [
     { key: 'qty', header: 'QTY', width: 34, render: (r) => fmtAuto(r.qty) },
     { key: 'desc', header: 'SIZE - TYPE - MATERIAL', align: 'left', render: (r) => `${r.size} ${r.type} ${r.material}` },
-    { key: 'via', header: 'VIA', width: 32, render: (r) => fmtAuto(r.via) },
+    { key: 'via', header: 'VIA', width: 44, render: (r) => fmtAuto(r.via) },
     { key: 'rc', header: 'RC', width: 32, render: (r) => fmtAuto(r.rc) },
-    { key: 'sd', header: 'S/D', width: 32, render: (r) => fmtAuto(r.sd) },
-    { key: 'cb', header: 'C/B', width: 32, render: (r) => fmtAuto(r.cb) },
+    { key: 'sd', header: 'S/D', width: 36, render: (r) => fmtAuto(r.sd) },
+    { key: 'cb', header: 'C/B', width: 40, render: (r) => fmtAuto(r.cb) },
     { key: 'vdp', header: 'VDP', width: 24, render: (r) => fmtAuto(r.vdp) },
 ];
 
