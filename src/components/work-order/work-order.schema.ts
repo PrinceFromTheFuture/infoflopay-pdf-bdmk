@@ -25,6 +25,7 @@ const orderSchema = z.object({
     orderDate: s,
     dataIn: s,
     materialIn: s,
+    artworkIn: s,
     dueDate: s,
 });
 
@@ -33,6 +34,10 @@ const designSchema = z.object({
     hp: s,
     vp: s,
     pp: s,
+    designer: s,
+    estimatedHours: s,
+    actualHours: s,
+    dateApproved: s,
 });
 
 const sortPostageSchema = z.object({

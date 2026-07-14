@@ -111,7 +111,7 @@ export const theme: PdfxTheme = {
     mutedForeground: "#000000",
     primary: "transparent",
     primaryForeground: "#000000",
-    border: "#000000",
+    border: "#cccccc",
     accent: "#000000",
     destructive: "#000000",
     success: "#000000",

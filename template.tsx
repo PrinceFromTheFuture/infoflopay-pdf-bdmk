@@ -1,13 +1,13 @@
 import React from 'react';
 import dayjs from 'dayjs';
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
-import { SectionTable, type Column } from './src/components/work-order/section-table';
+import { SectionTable, ROW_H, type Column } from './src/components/work-order/section-table';
 import { paginateWorkOrder } from './src/components/work-order/paginate';
 import type { WorkOrderData, PrintingRow, LettershopRow } from './src/components/work-order/work-order.schema';
 import { phpToDayjs } from './src/utils/date-format';
 
 // ─── Single border used everywhere ────────────────────────────
-const B = '0.8 solid #000000';
+const B = '0.8 solid #cccccc';
 
 // ─── Font scale ───────────────────────────────────────────────
 const FS = {
@@ -46,6 +46,12 @@ const FOOTER_HEIGHT = 49; // measured CommentsBox height
 // page once the other has run out of data.
 const ROWS_BOTH = 13;
 const ROWS_FULL = 29;
+
+// First-page capacities. The DESIGN table (title + one 14pt row ≈ 38pt, about
+// three row-heights) only appears on page 1, so the flowing tables there start
+// lower and hold correspondingly fewer rows.
+const ROWS_BOTH_FIRST = 12;
+const ROWS_FULL_FIRST = 27;
 
 const styles = StyleSheet.create({
     page: {
@@ -191,11 +197,11 @@ const OrderSummary = ({ data }: { data: WorkOrderData }) => {
             <View style={styles.grid}>
 
                 {/* ── Cell 1: Customer ── */}
-                <View style={{ ...styles.cell, borderRight: '0 solid #000000', justifyContent: 'center' }}>
+                <View style={{ ...styles.cell, borderRight: '0 solid #cccccc', justifyContent: 'center' }}>
                     <View style={{ gap: PAIR_GAP }}>
-                        <KV keyWidth={52} label="Customer:" value={data.order.customer} valSize={FS.xl} valBold />
+                        <KV keyWidth={52} label="Customer:" value={data.order.customer} valSize={FS.xl - 3} valBold />
                         <KV keyWidth={52} label="Notes:" value={data.order.notes} valSize={FS.normal} valBold />
-                        <KV keyWidth={52} label="Job Name:" value={data.order.jobName} valSize={FS.xl} valBold />
+                        <KV keyWidth={52} label="Job Name:" value={data.order.jobName} valSize={FS.xl - 3} valBold />
                     </View>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingRight: 20, marginTop: PAIR_GAP }}>
                         <KV keyWidth={52} label="Quantity:" value={fmtNum(Number(data.order.quantity))} valSize={FS.xl} valBold />
@@ -210,6 +216,7 @@ const OrderSummary = ({ data }: { data: WorkOrderData }) => {
                             <KV gap={ROW_GAP} label="Order Date:" value={fmtDate(data.order.orderDate)} keySize={FS.xl} valSize={FS.xl} />
                             <KV gap={ROW_GAP} label="Data In:" value={fmtDate(data.order.dataIn)} keySize={FS.xl} valSize={FS.xl} />
                             <KV gap={ROW_GAP} label="Material In:" value={fmtDate(data.order.materialIn)} keySize={FS.xl} valSize={FS.xl} />
+                            <KV gap={ROW_GAP} label="Artwork In:" value={fmtDate(data.order.artworkIn)} keySize={FS.xl} valSize={FS.xl} />
                             <KV gap={ROW_GAP} label="Due Date:" value={fmtDate(data.order.dueDate)} keySize={FS.xl} valSize={FS.xl} />
                         </View>
                         <View style={{ width: 64, gap: PAIR_GAP, justifyContent: 'center' }}>
@@ -222,7 +229,7 @@ const OrderSummary = ({ data }: { data: WorkOrderData }) => {
                 </View>
 
                 {/* ── Cell 4: Sort / Postage ── */}
-                <View style={{ ...styles.cell, borderRight: '0 solid #000000' }}>
+                <View style={{ ...styles.cell, borderRight: '0 solid #cccccc' }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', height: '100%' }}>
                         <View style={{ flex: 1, gap: PAIR_GAP, paddingRight: 6 }}>
                             <KV label="Cat / Size:" value={data.sortPostage.catSize} />
@@ -242,14 +249,68 @@ const OrderSummary = ({ data }: { data: WorkOrderData }) => {
 
                 {/* ── Cell 3: Delivery ── */}
                 <View style={styles.cell}>
-                    <View style={{ gap: PAIR_GAP }}>
-                        <KV gap={ROW_GAP} label="Deliver to PO:" value={data.delivery.deliverToPo} />
-                        <KV gap={ROW_GAP} label="Deliver to client:" value={data.delivery.deliverToClient} />
-                        <KV gap={ROW_GAP} label="Client p/u or ship:" value={data.delivery.clientPuOrShip} />
-                        <KV gap={ROW_GAP} label="Leftovers:" value={data.delivery.leftovers} />
+                    <View style={{ flexDirection: 'row', height: '100%' }}>
+                        <View style={{ flex: 1, gap: PAIR_GAP, paddingRight: 6, justifyContent: 'center' }}>
+                            <KV gap={ROW_GAP} label="Deliver to PO:" value={data.delivery.deliverToPo} keySize={FS.xl} valSize={FS.xl} />
+                            <KV gap={ROW_GAP} label="Deliver to client:" value={data.delivery.deliverToClient} keySize={FS.xl} valSize={FS.xl} />
+                            <KV gap={ROW_GAP} label="Client p/u or ship:" value={data.delivery.clientPuOrShip} keySize={FS.xl} valSize={FS.xl} />
+                            <KV gap={ROW_GAP} label="Leftovers:" value={data.delivery.leftovers} keySize={FS.xl} valSize={FS.xl} />
+                        </View>
                     </View>
                 </View>
 
+            </View>
+        </>
+    );
+};
+
+// ─── DESIGN single-row table (first page only) ─────────────────
+// Matches the PRINTING/LETTERSHOP section look: a bold title above a
+// light-gray bordered box holding one row of eight equally-spaced columns,
+// alternating key | value | key | value …, divided by light-gray column rules.
+const DesignTable = ({ data }: { data: WorkOrderData }) => {
+    // Flattened into individual cells so keys and values each occupy their own
+    // equal-width column (8 columns total for the 4 key/value pairs).
+    const cells = [
+        { text: 'Designer:', bold: true },
+        { text: data.design.designer, bold: false },
+        { text: 'Estimated Hours:', bold: true },
+        { text: data.design.estimatedHours, bold: false },
+        { text: 'Actual Hours:', bold: true },
+        { text: data.design.actualHours, bold: false },
+        { text: 'Date Approved:', bold: true },
+        { text: data.design.dateApproved, bold: false },
+    ];
+
+    return (
+        <>
+            <View style={{ paddingVertical: 3, paddingTop: 5 }}>
+                <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 12 }}>DESIGN</Text>
+            </View>
+            <View style={{ border: B, marginBottom: 3 }}>
+                <View style={{ flexDirection: 'row', height: ROW_H, alignItems: 'center' }}>
+                    {cells.map((c, i) => (
+                        <View
+                            key={i}
+                            style={{
+                                flex: 1,
+                                height: '100%',
+                                justifyContent: 'center',
+                                paddingHorizontal: 5,
+                                ...(i === cells.length - 1 ? {} : { borderRight: B }),
+                            }}
+                        >
+                            <Text
+                                style={{
+                                    fontFamily: 'Helvetica',
+                                    fontSize: FS.normal - 1,
+                                }}
+                            >
+                                {c.text}
+                            </Text>
+                        </View>
+                    ))}
+                </View>
             </View>
         </>
     );
@@ -276,7 +337,7 @@ const CommentsBox = ({ comments }: { comments: string }) => (
         <Text style={{ fontFamily: 'Helvetica', fontSize: 7, padding: 3 }}>COMMENTS:</Text>
         <View style={{ flexDirection: 'row' }}>
             <View style={{ flex: 1, paddingBottom: 4, paddingHorizontal: 5, minHeight: 38 }}>
-                <Text style={{ fontFamily: 'Helvetica', fontSize: 6 }}>{comments}</Text>
+                <Text style={{ fontFamily: 'Helvetica', fontSize: 9 }}>{comments}</Text>
             </View>
         </View>
     </View>
@@ -291,6 +352,8 @@ const mailingTemplate = ({ data }: { data: WorkOrderData }) => {
     const pages = paginateWorkOrder(data.printing, data.lettershop, {
         both: ROWS_BOTH,
         full: ROWS_FULL,
+        firstBoth: ROWS_BOTH_FIRST,
+        firstFull: ROWS_FULL_FIRST,
     });
 
     return (
@@ -298,6 +361,8 @@ const mailingTemplate = ({ data }: { data: WorkOrderData }) => {
             {pages.map((page, i) => (
                 <Page key={i} size="LETTER" style={styles.page}>
                     <OrderSummary data={data} />
+
+                    {i === 0 && <DesignTable data={data} />}
 
                     {page.printing && (
                         <SectionTable

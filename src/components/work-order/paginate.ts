@@ -31,45 +31,59 @@ export type Capacities = {
     both: number;
     /** Rows for a single table expanded to fill the page on its own. */
     full: number;
+    /**
+     * Rows per table when both share the FIRST page. Optional: the first page
+     * can hold fewer rows when something extra (e.g. the DESIGN table) sits
+     * above the flowing tables. Defaults to `both`.
+     */
+    firstBoth?: number;
+    /** Rows for a lone table on the FIRST page. Defaults to `full`. */
+    firstFull?: number;
 };
 
 export function paginateWorkOrder<P, L>(
     printing: P[],
     lettershop: L[],
-    { both, full }: Capacities,
+    { both, full, firstBoth, firstFull }: Capacities,
 ): WorkPage<P, L>[] {
     const pages: WorkPage<P, L>[] = [];
     let pi = 0;
     let li = 0;
 
     do {
+        // The first page may have reduced capacity when extra content sits
+        // above the tables; every following page uses the standard capacities.
+        const isFirst = pages.length === 0;
+        const curBoth = isFirst ? firstBoth ?? both : both;
+        const curFull = isFirst ? firstFull ?? full : full;
+
         const pRemain = printing.length - pi;
         const lRemain = lettershop.length - li;
 
         if (pRemain > 0 && lRemain > 0) {
             pages.push({
-                printing: { rows: printing.slice(pi, pi + both), padTo: both },
-                lettershop: { rows: lettershop.slice(li, li + both), padTo: both },
+                printing: { rows: printing.slice(pi, pi + curBoth), padTo: curBoth },
+                lettershop: { rows: lettershop.slice(li, li + curBoth), padTo: curBoth },
             });
-            pi += both;
-            li += both;
+            pi += curBoth;
+            li += curBoth;
         } else if (pRemain > 0) {
             pages.push({
-                printing: { rows: printing.slice(pi, pi + full), padTo: full },
+                printing: { rows: printing.slice(pi, pi + curFull), padTo: curFull },
                 lettershop: null,
             });
-            pi += full;
+            pi += curFull;
         } else if (lRemain > 0) {
             pages.push({
                 printing: null,
-                lettershop: { rows: lettershop.slice(li, li + full), padTo: full },
+                lettershop: { rows: lettershop.slice(li, li + curFull), padTo: curFull },
             });
-            li += full;
+            li += curFull;
         } else {
             // No data in either table: still render one full, blank grid.
             pages.push({
-                printing: { rows: [], padTo: both },
-                lettershop: { rows: [], padTo: both },
+                printing: { rows: [], padTo: curBoth },
+                lettershop: { rows: [], padTo: curBoth },
             });
         }
     } while (pi < printing.length || li < lettershop.length);

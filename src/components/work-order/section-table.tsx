@@ -10,7 +10,7 @@ import {
 } from '../pdfx/table/pdfx-table';
 
 // ─── Single border used everywhere ────────────────────────────
-const B = '0.8 solid #000000';
+const B = '0.8 solid #cccccc';
 
 // Fixed height of a single data row. Used so the blank filler rows match the
 // data rows and the ruled grid stays even.
@@ -32,10 +32,9 @@ export type Column<T> = {
 const styles = {
     title: { paddingVertical: 3, paddingTop: 5 } as Style,
     titleTxt: { fontFamily: 'Helvetica-Bold', fontSize: 12 } as Style,
-    // Bottom border is intentionally omitted: the last table row keeps its own
-    // 1pt divider as the table's bottom edge, so every row (data or blank) has
-    // an identical height instead of the final row being padded by the box border.
-    box: { border: B, borderBottomWidth: 0, marginBottom: 3 } as Style,
+    // The box draws the full rectangle (including the bottom edge) since blank
+    // filler rows no longer carry their own divider to close it off.
+    box: { border: B, marginBottom: 3 } as Style,
     thTxt: { fontFamily: 'Helvetica', fontSize: 6, textAlign: 'center' } as Style,
 };
 
@@ -44,9 +43,9 @@ type SectionTableProps<T> = {
     columns: Column<T>[];
     rows: T[];
     /**
-     * Pad the body with blank rows so the table always shows at least this many
-     * rows. Lets a sparsely-populated table still look like a full, ruled grid
-     * instead of collapsing to the height of its data.
+     * Pad the body with blank, unruled rows so the table always shows at least
+     * this many rows. Lets a sparsely-populated table still reach a minimum
+     * height instead of collapsing to the height of its data.
      */
     minRows?: number;
 };
@@ -56,8 +55,9 @@ type SectionTableProps<T> = {
  *
  * Renders a section heading followed by a bordered table built from a
  * declarative `columns` config. Data rows are followed by blank filler rows so
- * the table reaches `minRows`, keeping the column rules and row dividers running
- * down to a consistent minimum height.
+ * the table reaches `minRows`, padding it out to a consistent minimum height.
+ * Filler rows are left unruled (no column or row dividers) so only actual data
+ * rows carry the grid.
  *
  * The table flows in normal document order and wraps naturally across pages:
  * when the rows don't fit on the current page react-pdf continues them on the
@@ -71,9 +71,11 @@ export function SectionTable<T>({ title, columns, rows, minRows = 0 }: SectionTa
     // ruled grid up to `minRows`.
     const fillerCount = Math.max(minRows - rows.length, 0);
 
+    // Blank filler rows render with no column or row dividers at all, so an
+    // under-filled table trails off into empty space instead of a ruled grid.
     const renderCells = (row: T | null) =>
         columns.map((c, i) => {
-            const style = i === lastCol ? {} : { borderRight: B };
+            const style = row && i !== lastCol ? { borderRight: B } : {};
             return (
                 <TableCell
                     key={c.key}
@@ -120,7 +122,7 @@ export function SectionTable<T>({ title, columns, rows, minRows = 0 }: SectionTa
                         ))}
 
                         {Array.from({ length: fillerCount }).map((_, f) => (
-                            <TableRow key={`f${f}`} style={{ height: ROW_H }}>
+                            <TableRow key={`f${f}`} style={{ height: ROW_H, borderBottomWidth: 0 }}>
                                 {renderCells(null)}
                             </TableRow>
                         ))}
