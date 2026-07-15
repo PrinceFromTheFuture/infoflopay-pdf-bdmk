@@ -47,11 +47,12 @@ const FOOTER_HEIGHT = 49; // measured CommentsBox height
 const ROWS_BOTH = 13;
 const ROWS_FULL = 29;
 
-// First-page capacities. The DESIGN table (title + one 14pt row ≈ 38pt, about
-// three row-heights) only appears on page 1, so the flowing tables there start
-// lower and hold correspondingly fewer rows.
+// First-page capacities. The DESIGN table (title + one 14pt row plus its own
+// title/margins ≈ 40pt, ~3 row-heights) only appears on page 1, so the flowing
+// tables there start lower and hold correspondingly fewer rows. Verified by
+// render: a lone table fits 26 rows here (27 overflows onto a second page).
 const ROWS_BOTH_FIRST = 12;
-const ROWS_FULL_FIRST = 27;
+const ROWS_FULL_FIRST = 26;
 
 const styles = StyleSheet.create({
     page: {
