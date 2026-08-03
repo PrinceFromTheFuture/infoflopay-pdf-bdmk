@@ -162,7 +162,7 @@ const printingColumns: Column<PrintingRow>[] = [
 ];
 
 const lettershopColumns: Column<LettershopRow>[] = [
-    { key: 'qty', header: 'QTY', width: 55, render: (r) => fmtNum(r.qty) },
+    { key: 'qty', header: 'QTY', width: 39, render: (r) => fmtNum(r.qty) },
     { key: 'description', header: 'DESCRIPTION', align: 'left', render: (r) => r.description },
     { key: 'comment', header: 'COMMENT', align: 'left', render: (r) => r.comment },
 ];
