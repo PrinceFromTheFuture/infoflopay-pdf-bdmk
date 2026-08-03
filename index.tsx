@@ -9,6 +9,7 @@ const ROUTE = '/pdf/templates/mailing';
 async function renderMailing(data: unknown): Promise<Response> {
     const parsed = workOrderSchema.safeParse(data);
     if (!parsed.success) {
+        console.error(parsed.error.issues);
         return Response.json(
             { error: 'Validation failed', issues: parsed.error.issues },
             { status: 422 },

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // ─── Work order data schema ───────────────────────────────────
 // Validates the shape of the data rendered by the work-order PDF template.
@@ -11,83 +11,86 @@ const s = z.coerce.string();
 const n = z.coerce.number();
 
 const headerSchema = z.object({
-    workOrder: s,
-    dueDate: s,
-    priority: s,
+  workOrder: s,
+  dueDate: s,
+  priority: s,
 });
 
 const orderSchema = z.object({
-    customer: s,
-    notes: s,
-    jobName: s,
-    quantity: s,
-    po: s,
-    orderDate: s,
-    dataIn: s,
-    materialIn: s,
-    artworkIn: s,
-    dueDate: s,
+  customer: s,
+  notes: s,
+  jobName: s,
+  quantity: s,
+  po: s,
+  orderDate: s,
+  dataIn: s,
+  materialIn: s,
+  artworkIn: s,
+  dueDate: s,
 });
 
 const designSchema = z.object({
-    dp: s,
-    hp: s,
-    vp: s,
-    pp: s,
-    designer: s,
-    estimatedHours: s,
-    actualHours: s,
-    dateApproved: s,
+  dp: s,
+  hp: s,
+  vp: s,
+  pp: s,
+  designer: s,
+  estimatedHours: s,
+  actualHours: s,
+  dateApproved: s,
 });
 
 const sortPostageSchema = z.object({
-    catSize: s,
-    classOfMail: s,
-    postageAffix: s,
-    data: s,
-    postageStatus: s,
-    piNumber: s,
-    destitrack: s,
-    itSpecial: s,
-    mailingList: s,
+  catSize: s,
+  political: s,
+  classOfMail: s,
+  postageAffix: s,
+  data: s,
+  postageStatus: s,
+  piNumber: s,
+  destitrack: s,
+  itSpecial: s,
+  mailingList: s,
 });
 
 const deliverySchema = z.object({
-    deliverToPo: s,
-    deliverToClient: s,
-    clientPuOrShip: s,
-    leftovers: s,
+  deliverToPo: s,
+  deliverToClient: s,
+  clientPuOrShip: s,
+  leftovers: s,
 });
 
 const printingRowSchema = z.object({
-    qty: n,
-    size: s,
-    type: s,
-    material: s,
-    via: s,
-    rc: s,
-    sd: s,
-    cb: s,
-    vdp: s,
+  qty: n,
+  size: s,
+  type: s,
+  material: s,
+  via: s,
+  rc: s,
+  sd: s,
+  cb: s,
+  vdp: s,
+  ext: s,
+  comment: s,
 });
 
 const lettershopRowSchema = z.object({
-    qty: n,
-    description: s,
-    comment: s,
+  qty: n,
+  description: s,
+  comment: s,
 });
 
 export const workOrderSchema = z.object({
-    header: headerSchema,
-    order: orderSchema,
-    design: designSchema,
-    sortPostage: sortPostageSchema,
-    delivery: deliverySchema,
-    printing: z.array(printingRowSchema),
-    lettershop: z.array(lettershopRowSchema),
-    comments: z.string(),
-    /** PHP-style date format string (e.g. "m/d/Y", "d-m-Y", "Y/m/d").  Defaults to "m/d/Y". */
-    date_format: z.string().default('m/d/Y'),
+  header: headerSchema,
+  order: orderSchema,
+  design: designSchema,
+  sortPostage: sortPostageSchema,
+  delivery: deliverySchema,
+  printing: z.array(printingRowSchema),
+  lettershop: z.array(lettershopRowSchema),
+  comments: z.string(),
+  /** PHP-style date format string (e.g. "m/d/Y", "d-m-Y", "Y/m/d").  Defaults to "m/d/Y". */
+  date_format: z.string().default("m/d/Y"),
 });
 
 export type WorkOrderData = z.infer<typeof workOrderSchema>;

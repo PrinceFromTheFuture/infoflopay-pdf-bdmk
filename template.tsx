@@ -147,14 +147,18 @@ const fmtAuto = (v: unknown): string => {
     return isNaN(n) ? String(v ?? '') : fmtNum(n);
 };
 
+// `desc` and `comment` both omit `width` so they share the space left over by
+// the fixed columns equally (flex: 1 each).
 const printingColumns: Column<PrintingRow>[] = [
     { key: 'qty', header: 'QTY', width: 34, render: (r) => fmtAuto(r.qty) },
     { key: 'desc', header: 'SIZE - TYPE - MATERIAL', align: 'left', render: (r) => `${r.size} ${r.type} ${r.material}` },
+    { key: 'comment', header: 'COMMENT', align: 'left', render: (r) => r.comment },
     { key: 'via', header: 'VIA', width: 44, render: (r) => fmtAuto(r.via) },
     { key: 'rc', header: 'RC', width: 32, render: (r) => fmtAuto(r.rc) },
     { key: 'sd', header: 'S/D', width: 36, render: (r) => fmtAuto(r.sd) },
     { key: 'cb', header: 'C/B', width: 40, render: (r) => fmtAuto(r.cb) },
     { key: 'vdp', header: 'VDP', width: 24, render: (r) => fmtAuto(r.vdp) },
+    { key: 'ext', header: 'EXT', width: 34, render: (r) => fmtAuto(r.ext) },
 ];
 
 const lettershopColumns: Column<LettershopRow>[] = [
@@ -214,17 +218,17 @@ const OrderSummary = ({ data }: { data: WorkOrderData }) => {
                 <View style={styles.cell}>
                     <View style={{ flexDirection: 'row', height: '100%' }}>
                         <View style={{ flex: 1, gap: PAIR_GAP, paddingRight: 6, justifyContent: 'center' }}>
-                            <KV gap={ROW_GAP} label="Order Date:" value={fmtDate(data.order.orderDate)} keySize={FS.xl} valSize={FS.xl} />
-                            <KV gap={ROW_GAP} label="Data In:" value={fmtDate(data.order.dataIn)} keySize={FS.xl} valSize={FS.xl} />
-                            <KV gap={ROW_GAP} label="Material In:" value={fmtDate(data.order.materialIn)} keySize={FS.xl} valSize={FS.xl} />
-                            <KV gap={ROW_GAP} label="Artwork In:" value={fmtDate(data.order.artworkIn)} keySize={FS.xl} valSize={FS.xl} />
-                            <KV gap={ROW_GAP} label="Due Date:" value={fmtDate(data.order.dueDate)} keySize={FS.xl} valSize={FS.xl} />
+                            <KV gap={ROW_GAP} label="Order Date:" value={fmtDate(data.order.orderDate)} />
+                            <KV gap={ROW_GAP} label="Data In:" value={fmtDate(data.order.dataIn)} />
+                            <KV gap={ROW_GAP} label="Material In:" value={fmtDate(data.order.materialIn)} />
+                            <KV gap={ROW_GAP} label="Artwork In:" value={fmtDate(data.order.artworkIn)} />
+                            <KV gap={ROW_GAP} label="Due Date:" value={fmtDate(data.order.dueDate)} />
                         </View>
                         <View style={{ width: 64, gap: PAIR_GAP, justifyContent: 'center' }}>
-                            <KV gap={ROW_GAP} label="DP:" value={data.design.dp} keySize={FS.xl} valSize={FS.xl} />
-                            <KV gap={ROW_GAP} label="HP:" value={data.design.hp} keySize={FS.xl} valSize={FS.xl} />
-                            <KV gap={ROW_GAP} label="VP:" value={data.design.vp} keySize={FS.xl} valSize={FS.xl} />
-                            <KV gap={ROW_GAP} label="PP:" value={data.design.pp} keySize={FS.xl} valSize={FS.xl} />
+                            <KV gap={ROW_GAP} label="DP:" value={data.design.dp} />
+                            <KV gap={ROW_GAP} label="HP:" value={data.design.hp} />
+                            <KV gap={ROW_GAP} label="VP:" value={data.design.vp} />
+                            <KV gap={ROW_GAP} label="PP:" value={data.design.pp} />
                         </View>
                     </View>
                 </View>
@@ -244,6 +248,7 @@ const OrderSummary = ({ data }: { data: WorkOrderData }) => {
                             <KV label="Destitrack:" value={data.sortPostage.destitrack} />
                             <KV label="IT Special:" value={data.sortPostage.itSpecial} />
                             <KV label="Mailing List:" value={data.sortPostage.mailingList} />
+                            <KV label="Political:" value={data.sortPostage.political} />
                         </View>
                     </View>
                 </View>
@@ -252,10 +257,10 @@ const OrderSummary = ({ data }: { data: WorkOrderData }) => {
                 <View style={styles.cell}>
                     <View style={{ flexDirection: 'row', height: '100%' }}>
                         <View style={{ flex: 1, gap: PAIR_GAP, paddingRight: 6, justifyContent: 'center' }}>
-                            <KV gap={ROW_GAP} label="Deliver to PO:" value={data.delivery.deliverToPo} keySize={FS.xl} valSize={FS.xl} />
-                            <KV gap={ROW_GAP} label="Deliver to client:" value={data.delivery.deliverToClient} keySize={FS.xl} valSize={FS.xl} />
-                            <KV gap={ROW_GAP} label="Client p/u or ship:" value={data.delivery.clientPuOrShip} keySize={FS.xl} valSize={FS.xl} />
-                            <KV gap={ROW_GAP} label="Leftovers:" value={data.delivery.leftovers} keySize={FS.xl} valSize={FS.xl} />
+                            <KV gap={ROW_GAP} label="Deliver to PO:" value={data.delivery.deliverToPo} />
+                            <KV gap={ROW_GAP} label="Deliver to client:" value={data.delivery.deliverToClient} />
+                            <KV gap={ROW_GAP} label="Client p/u or ship:" value={data.delivery.clientPuOrShip} />
+                            <KV gap={ROW_GAP} label="Leftovers:" value={data.delivery.leftovers} />
                         </View>
                     </View>
                 </View>
