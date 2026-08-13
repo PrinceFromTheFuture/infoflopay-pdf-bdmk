@@ -157,6 +157,7 @@ const printingColumns: Column<PrintingRow>[] = [
     { key: 'rc', header: 'RC', width: 32, render: (r) => fmtAuto(r.rc) },
     { key: 'sd', header: 'S/D', width: 36, render: (r) => fmtAuto(r.sd) },
     { key: 'cb', header: 'C/B', width: 40, render: (r) => fmtAuto(r.cb) },
+    { key: 'uv', header: 'UV', width: 40, render: (r) => fmtAuto(r.uv) },
     { key: 'vdp', header: 'VDP', width: 24, render: (r) => fmtAuto(r.vdp) },
     { key: 'ext', header: 'EXT', width: 34, render: (r) => fmtAuto(r.ext) },
 ];

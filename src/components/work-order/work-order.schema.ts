@@ -69,6 +69,7 @@ const printingRowSchema = z.object({
   rc: s,
   sd: s,
   cb: s,
+  uv:s,
   vdp: s,
   ext: s,
   comment: s,
