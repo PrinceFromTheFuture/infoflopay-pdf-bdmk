@@ -1,7 +1,7 @@
 import React from 'react';
 import dayjs from 'dayjs';
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
-import { SectionTable, ROW_H, type Column } from './src/components/work-order/section-table';
+import { SectionTable, measureRowHeight, ROW_H, type Column } from './src/components/work-order/section-table';
 import { paginateWorkOrder } from './src/components/work-order/paginate';
 import type { WorkOrderData, PrintingRow, LettershopRow } from './src/components/work-order/work-order.schema';
 import { phpToDayjs } from './src/utils/date-format';
@@ -26,7 +26,8 @@ const PAIR_GAP = 10;
 // LETTER width 612 - page padding (20 * 2) = 572 content width.
 // Boxes touch left↔right (no column gap) so each cell is half the width.
 const GRID_GAP = 3; // vertical gap between the top and bottom row only
-const CELL_W = (612 - 40) / 2; // 286
+const PAGE_W = 612; // LETTER
+const CELL_W = (PAGE_W - 40) / 2; // 286
 const CELL_H = CELL_W / 2.8; // height aspect 1/2 of width
 
 // ─── Page geometry & per-page table capacities ────────────────
@@ -41,6 +42,11 @@ const CELL_H = CELL_W / 2.8; // height aspect 1/2 of width
 //   ONE table  (1× 34 ovh)   → (458 − 34) / 14 ≈ 30 rows        → 29 (margin)
 const PAGE_MARGIN = 20;
 const FOOTER_HEIGHT = 49; // measured CommentsBox height
+
+// Inner width of a section table: the page's content width less the 0.8pt
+// border its box draws on either side. Wrapping columns are measured against
+// this to work out how tall each row will be.
+const TABLE_W = PAGE_W - PAGE_MARGIN * 2 - 1.6;
 
 // Rows per table when both share a page, and for a lone table that fills the
 // page once the other has run out of data.
@@ -141,17 +147,36 @@ const KV = ({
 // Render an empty string for zero / NaN instead of "0".
 const fmtNum = (n: number) => (!n || isNaN(n) ? '' : n.toLocaleString('en-US'));
 
-// ─── Table column definitions ─────────────────────────────────
 const fmtAuto = (v: unknown): string => {
     const n = Number(v);
     return isNaN(n) ? String(v ?? '') : fmtNum(n);
 };
 
+// Delivery destinations each carry a quantity. It gets its own bold "Qty:"
+// label so the bare number can't be read as part of the value, and is left off
+// entirely when there's no quantity to show.
+const withQty = (value: string, qty: string): React.ReactNode => {
+    const amount = fmtAuto(qty);
+    if (!amount) return value;
+
+    return (
+        <>
+            {value ? `${value}   ` : ''}
+            <Text style={{ fontFamily: 'Helvetica-Bold' }}>Qty: </Text>
+            {amount}
+        </>
+    );
+};
+
+// ─── Table column definitions ─────────────────────────────────
+
 // `desc` and `comment` both omit `width` so they share the space left over by
-// the fixed columns equally (flex: 1 each).
+// the fixed columns equally (flex: 1 each). `desc` is the only column allowed
+// to wrap: a long size/type/material runs onto a second line and makes its row
+// taller, while every other cell stays clipped to one line.
 const printingColumns: Column<PrintingRow>[] = [
     { key: 'qty', header: 'QTY', width: 34, render: (r) => fmtAuto(r.qty) },
-    { key: 'desc', header: 'SIZE - TYPE - MATERIAL', align: 'left', render: (r) => `${r.size} ${r.type} ${r.material}` },
+    { key: 'desc', header: 'SIZE - TYPE - MATERIAL', align: 'left', wrap: true, render: (r) => `${r.size} ${r.type} ${r.material}` },
     { key: 'comment', header: 'COMMENT', align: 'left', render: (r) => r.comment },
     { key: 'via', header: 'VIA', width: 44, render: (r) => fmtAuto(r.via) },
     { key: 'rc', header: 'RC', width: 32, render: (r) => fmtAuto(r.rc) },
@@ -258,10 +283,10 @@ const OrderSummary = ({ data }: { data: WorkOrderData }) => {
                 <View style={styles.cell}>
                     <View style={{ flexDirection: 'row', height: '100%' }}>
                         <View style={{ flex: 1, gap: PAIR_GAP, paddingRight: 6, justifyContent: 'center' }}>
-                            <KV gap={ROW_GAP} label="Deliver to PO:" value={data.delivery.deliverToPo} />
-                            <KV gap={ROW_GAP} label="Deliver to client:" value={data.delivery.deliverToClient} />
-                            <KV gap={ROW_GAP} label="Client p/u or ship:" value={data.delivery.clientPuOrShip} />
-                            <KV gap={ROW_GAP} label="Leftovers:" value={data.delivery.leftovers} />
+                            <KV gap={ROW_GAP} label="Deliver to PO:" value={withQty(data.delivery.deliverToPo, data.delivery.deliverToPoQty)} />
+                            <KV gap={ROW_GAP} label="Deliver to client:" value={withQty(data.delivery.deliverToClient, data.delivery.deliverToClientQty)} />
+                            <KV gap={ROW_GAP} label="Client p/u or ship:" value={withQty(data.delivery.clientPuOrShip, data.delivery.clientPuOrShipQty)} />
+                            <KV gap={ROW_GAP} label="Leftovers:" value={withQty(data.delivery.leftovers, data.delivery.leftoversQty)} />
                         </View>
                     </View>
                 </View>
@@ -356,12 +381,21 @@ const CommentsBox = ({ comments }: { comments: string }) => (
 // with blank rows to a full grid). Once one table runs out, the other expands
 // to ROWS_FULL and fills every following page on its own.
 const mailingTemplate = ({ data }: { data: WorkOrderData }) => {
-    const pages = paginateWorkOrder(data.printing, data.lettershop, {
-        both: ROWS_BOTH,
-        full: ROWS_FULL,
-        firstBoth: ROWS_BOTH_FIRST,
-        firstFull: ROWS_FULL_FIRST,
-    });
+    const pages = paginateWorkOrder(
+        data.printing,
+        data.lettershop,
+        {
+            both: ROWS_BOTH,
+            full: ROWS_FULL,
+            firstBoth: ROWS_BOTH_FIRST,
+            firstFull: ROWS_FULL_FIRST,
+        },
+        {
+            rowHeight: ROW_H,
+            printing: (row) => measureRowHeight(printingColumns, row, TABLE_W),
+            lettershop: (row) => measureRowHeight(lettershopColumns, row, TABLE_W),
+        },
+    );
 
     return (
         <Document>
@@ -376,7 +410,7 @@ const mailingTemplate = ({ data }: { data: WorkOrderData }) => {
                             title="PRINTING"
                             columns={printingColumns}
                             rows={page.printing.rows}
-                            minRows={page.printing.padTo}
+                            fillers={page.printing.fillers}
                         />
                     )}
 
@@ -385,7 +419,7 @@ const mailingTemplate = ({ data }: { data: WorkOrderData }) => {
                             title="LETTERSHOP"
                             columns={lettershopColumns}
                             rows={page.lettershop.rows}
-                            minRows={page.lettershop.padTo}
+                            fillers={page.lettershop.fillers}
                         />
                     )}
 

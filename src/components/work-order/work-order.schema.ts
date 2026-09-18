@@ -9,6 +9,10 @@ import { z } from "zod";
 const s = z.coerce.string();
 // Accepts strings, numbers, null, or undefined — always coerces to number.
 const n = z.coerce.number();
+// Like `s`, but a missing or null value becomes an empty string instead of
+// failing (or coercing into the literal text "null"). Used for fields added
+// after the fact so payloads that predate them still validate.
+const so = z.preprocess((v) => v ?? "", s);
 
 const headerSchema = z.object({
   workOrder: s,
@@ -53,11 +57,16 @@ const sortPostageSchema = z.object({
   mailingList: s,
 });
 
+// Each delivery destination carries an optional quantity alongside its value.
 const deliverySchema = z.object({
   deliverToPo: s,
+  deliverToPoQty: so,
   deliverToClient: s,
+  deliverToClientQty: so,
   clientPuOrShip: s,
+  clientPuOrShipQty: so,
   leftovers: s,
+  leftoversQty: so,
 });
 
 const printingRowSchema = z.object({
